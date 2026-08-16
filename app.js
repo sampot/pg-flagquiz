@@ -1,0 +1,7 @@
+import{makeQuestion,newGame,answer}from"./game.js";const $=id=>document.getElementById(id),KEY="pg-flagquiz-best";let state=newGame(),q,time=60,timer,best=Number(localStorage.getItem(KEY)||0),active=false;
+function next(){q=makeQuestion();$("flag").src="./assets/flags/"+q.flag.code+".png";$("choices").innerHTML="";q.options.forEach(f=>{const b=document.createElement("button");b.textContent=f.name;b.onclick=()=>pick(f.code);$("choices").append(b)})}
+function render(){$("score").textContent=state.score;$("extra").textContent=`連擊 ${state.combo}｜剩餘 ${time} 秒`;$("best").textContent=best}
+async function save(){if(state.score<=best)return;best=state.score;localStorage.setItem(KEY,best);try{await fetch("/api/kv/"+KEY,{method:"PUT",body:String(best)})}catch{}}
+function pick(code){if(!active)return;const ok=answer(state,q,code,time);$("status").textContent=ok?`答對！${q.flag.name}`:`答案是 ${q.flag.name}`;next();render()}
+function start(){clearInterval(timer);state=newGame();time=60;active=true;$("start").disabled=true;next();render();timer=setInterval(()=>{time--;render();if(time<=0){clearInterval(timer);active=false;$("start").disabled=false;$("status").textContent=`時間到！答對 ${state.correct}／${state.answered}`;save();render()}},1000)}
+$("start").onclick=start;$("best").textContent=best;$("flag").src="./assets/flags/TW.png";$("status").textContent="準備好後開始";(async()=>{try{const r=await fetch("/api/kv/"+KEY),n=Number(await r.text());if(r.ok&&Number.isFinite(n))best=Math.max(best,n)}catch{}render()})();
